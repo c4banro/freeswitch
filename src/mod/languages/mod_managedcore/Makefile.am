@@ -28,10 +28,11 @@ reswig: swigclean freeswitch_wrap.cxx
 
 $(top_srcdir)/x64/Release/mod/FreeSWITCH.ManagedCore.dll: $(CS_SRC)
 	ls -a $(top_srcdir) > /tmp/test.txt
-	echo "mod123:" >> /tmp/test.txt
-	ls -a $(top_srcdir)/x64/Release/mod/ >> /tmp/test.txt
 	echo "csproj123:" >> /tmp/test.txt
 	echo "$(CS_PROJ)" >> /tmp/test.txt
+	echo "csdir123:" >> /tmp/test.txt
+	echo "$(CS_SRC)" >> /tmp/test.txt
+	ls -a $(MANAGED_SRCDIR) >> /tmp/test.txt
 	/usr/share/dotnet/dotnet build -c Release $(CS_PROJ)
 
 install-data-local: $(top_srcdir)/x64/Release/mod/FreeSWITCH.ManagedCore.dll
