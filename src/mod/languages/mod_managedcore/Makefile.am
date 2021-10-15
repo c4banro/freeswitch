@@ -27,7 +27,7 @@ freeswitch_managedcore.o: freeswitch_managedcore.h freeswitch_managedcore.cpp
 reswig: swigclean freeswitch_wrap.cxx
 
 $(top_srcdir)/x64/Release/mod/FreeSWITCH.ManagedCore.dll: $(CS_SRC)
-	/usr/bin/dotnet build -c Release $(CS_PROJ)
+	/usr/bin/dotnet/dotnet build -c Release $(CS_PROJ)
 
 install-data-local: $(top_srcdir)/x64/Release/mod/FreeSWITCH.ManagedCore.dll
 	mkdir -p $(DESTDIR)$(modulesdir)/managedcore
