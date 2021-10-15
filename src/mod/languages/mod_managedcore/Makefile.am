@@ -19,7 +19,7 @@ BUILT_SOURCES=$(top_srcdir)/x64/Release/mod/FreeSWITCH.ManagedCore.dll
 CS_SRC=$(MANAGED_SRCDIR)/AssemblyInfo.cs $(MANAGED_SRCDIR)/Extensions.cs $(MANAGED_SRCDIR)/Loader.cs $(MANAGED_SRCDIR)/Log.cs
 CS_SRC+=$(MANAGED_SRCDIR)/ManagedSession.cs $(MANAGED_SRCDIR)/PluginInterfaces.cs
 CS_SRC+=$(MANAGED_SRCDIR)/PluginManager.cs $(MANAGED_SRCDIR)/ChannelVariables.cs $(MANAGED_SRCDIR)/Util.cs
-CS_SRC+=$(MANAGED_SRCDIR)/swig.cs $(MANAGED_SRCDIR)/XmlSearchBinding.cs
+CS_SRC+=$(MANAGED_SRCDIR)/swig.cs $(MANAGED_SRCDIR)/XmlSearchBinding.cs $(MANAGED_SRCDIR)/FreeSWITCH.ManagedCore.2019.csproj
 CS_PROJ=$(MANAGED_SRCDIR)/FreeSWITCH.ManagedCore.2019.csproj
 
 freeswitch_managedcore.o: freeswitch_managedcore.h freeswitch_managedcore.cpp
@@ -27,13 +27,7 @@ freeswitch_managedcore.o: freeswitch_managedcore.h freeswitch_managedcore.cpp
 reswig: swigclean freeswitch_wrap.cxx
 
 $(top_srcdir)/x64/Release/mod/FreeSWITCH.ManagedCore.dll: $(CS_SRC)
-	ls -a $(top_srcdir) > /tmp/test.txt
-	echo "csproj123:" >> /tmp/test.txt
-	echo "$(CS_PROJ)" >> /tmp/test.txt
-	echo "csdir123:" >> /tmp/test.txt
-	echo "$(CS_SRC)" >> /tmp/test.txt
-	ls -a $(MANAGED_SRCDIR) >> /tmp/test.txt
-	/usr/share/dotnet/dotnet build -c Release $(CS_PROJ)
+	dotnet build -c Release $(CS_PROJ)
 
 install-data-local: $(top_srcdir)/x64/Release/mod/FreeSWITCH.ManagedCore.dll
 	mkdir -p $(DESTDIR)$(modulesdir)/managedcore
