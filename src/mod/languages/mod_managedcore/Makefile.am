@@ -31,7 +31,7 @@ FreeSWITCH.ManagedCore.dll: $(CS_SRC)
 	echo $(PATH)
 	whoami
 	ls -a /usr/bin
-	bash -c "/usr/bin/dotnet build -c Release $(CS_PROJ)"
+	dotnet build -c Release $(CS_PROJ)
 
 install-data-local: $(top_srcdir)/x64/Release/mod/FreeSWITCH.ManagedCore.dll
 	mkdir -p $(DESTDIR)$(modulesdir)/managedcore
