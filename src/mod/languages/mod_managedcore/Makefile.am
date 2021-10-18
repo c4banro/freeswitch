@@ -15,7 +15,7 @@ mod_managedcore_la_LIBADD   = $(switch_builddir)/libfreeswitch.la
 mod_managedcore_la_LDFLAGS  = -avoid-version -module -no-undefined -shared $(COREHOST_LDFLAGS)
 
 MANAGED_SRCDIR=$(abs_srcdir)/managed
-BUILT_SOURCES=$(top_srcdir)/x64/Release/mod/FreeSWITCH.ManagedCore.dll
+BUILT_SOURCES=FreeSWITCH.ManagedCore.dll
 CS_SRC=$(MANAGED_SRCDIR)/AssemblyInfo.cs $(MANAGED_SRCDIR)/Extensions.cs $(MANAGED_SRCDIR)/Loader.cs $(MANAGED_SRCDIR)/Log.cs
 CS_SRC+=$(MANAGED_SRCDIR)/ManagedSession.cs $(MANAGED_SRCDIR)/PluginInterfaces.cs
 CS_SRC+=$(MANAGED_SRCDIR)/PluginManager.cs $(MANAGED_SRCDIR)/ChannelVariables.cs $(MANAGED_SRCDIR)/Util.cs
@@ -26,7 +26,7 @@ freeswitch_managedcore.o: freeswitch_managedcore.h freeswitch_managedcore.cpp
 
 reswig: swigclean freeswitch_wrap.cxx
 
-$(top_srcdir)/x64/Release/mod/FreeSWITCH.ManagedCore.dll: $(CS_SRC)
+FreeSWITCH.ManagedCore.dll: $(CS_SRC)
 	/usr/bin/dotnet build -c Release $(CS_PROJ)
 
 install-data-local: $(top_srcdir)/x64/Release/mod/FreeSWITCH.ManagedCore.dll
