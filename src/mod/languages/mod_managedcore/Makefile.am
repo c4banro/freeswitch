@@ -26,7 +26,7 @@ freeswitch_managedcore.o: freeswitch_managedcore.h freeswitch_managedcore.cpp
 
 reswig: swigclean freeswitch_wrap.cxx
 
-export DOTNET_CLI_HOME=$(DESTDIR)$(modulesdir)
+export DOTNET_CLI_HOME=/tmp/dotnet
 $(top_srcdir)/x64/Release/mod/FreeSWITCH.ManagedCore.dll: $(CS_SRC)
 	dotnet build -c Release $(CS_PROJ)
 
