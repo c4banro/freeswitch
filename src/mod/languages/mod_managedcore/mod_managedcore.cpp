@@ -62,6 +62,11 @@
 
 #endif
 
+#ifdef WIN32
+#include "win_iconv.c"
+#else
+#include <iconv.h>
+#endif // WIN32
 
 
 SWITCH_BEGIN_EXTERN_C
@@ -124,28 +129,58 @@ SWITCH_MOD_DECLARE_NONSTD(void) InitManagedSession(ManagedSession *session, inpu
 	session->hangupDelegate = hangupDelegate;
 }
 
-
-void ConvertToChar_t(const char* inStr, size_t inStrLen, char_t* outStr, size_t outStrLen)
+int convert_strings(const char* from_enc, const char* to_enc, const char *string_in, size_t inbytesleft, char *string_out, size_t outbytesleft)
 {
-	if (sizeof(char_t) == sizeof(char))
-	{
-		strncpy((char*)outStr, inStr, min(inStrLen, outStrLen));
-		return;
+	iconv_t iconv_format;
+	int iconv_res;
+
+	memset(string_out, 0, outbytesleft);
+	errno = 0;
+	iconv_format = iconv_open(to_enc, from_enc);
+	if (iconv_format == (iconv_t)-1) {
+		return -1;
 	}
 
-	mbstowcs((wchar_t*)outStr, inStr, min(inStrLen, outStrLen));
-}
+#ifdef _WIN32
+	iconv_res = iconv(iconv_format, &string_in, &inbytesleft, &string_out, &outbytesleft);
+#else // _WIN32
+	iconv_res = iconv(iconv_format, (char **)&string_in, &inbytesleft, &string_out, &outbytesleft);
+#endif // _WIN32
 
-void ConvertToChar(const char_t* inStr, size_t inStrLen, char* outStr, size_t outStrLen)
-{
-	if (sizeof(char_t) == sizeof(char))
-	{
-		strncpy(outStr, (char*)inStr, min(inStrLen, outStrLen));
-		return;
+	if (iconv_res == (size_t)-1) {
+		iconv_close(iconv_format);
+		return -1;
 	}
 
-	wcstombs(outStr, (const wchar_t*)inStr, min(inStrLen, outStrLen));
+	iconv_close(iconv_format);
+	return 0;
 }
+
+void ConvertUnmangedToManagedString(const char* inStr, char_t* outStr, size_t outStrLen)
+{
+	int error = 0;
+#ifdef _WIN32
+	error = convert_strings("", "CP1200", (char*)inStr, strlen(inStr) * sizeof(char), (char*)outStr, outStrLen);
+#else
+	if (-1 == (error = convert_strings("", "UTF-8", (char*)inStr, strlen(inStr), (char*)outStr, outStrLen) ) )
+		error = convert_strings("UTF-8", "UTF-8", (char*)inStr, strlen(inStr), (char*)outStr, outStrLen);
+#endif
+	if (-1 == error)
+		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "ConvertUnmangedToManagedString: %s\n", strerror(errno));
+}
+
+void ConvertManagedToUnmanagedString(const char_t* inStr, char* outStr, size_t outStrLen, bool unmangedAsUtf8)
+{
+	int error = 0;
+#ifdef _WIN32
+	error = convert_strings( "CP1200", "", (char*)inStr, wcslen((wchar_t const*)inStr) * sizeof(wchar_t), (char*)outStr, outStrLen);
+#else
+	error = convert_strings("UTF-8", unmangedAsUtf8 ? "UTF-8" : "", (char*)inStr, strlen((char const*)inStr) * sizeof(char), (char*)outStr, outStrLen);
+#endif
+	if (-1 == error)
+		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_ERROR, "ConvertManagedToUnmanagedString: %s\n", strerror(errno));
+}
+
 
 
 switch_status_t loadRuntime()
@@ -160,7 +195,13 @@ switch_status_t loadRuntime()
 
 	char *derr = NULL;
 	char hostfxr_path[MAX_PATH];
-	ConvertToChar(hostfxr_path_t, MAX_PATH, hostfxr_path, MAX_PATH);
+	
+#ifdef _WIN32
+	ConvertManagedToUnmanagedString(hostfxr_path_t, hostfxr_path, MAX_PATH, false);
+#else
+	ConvertManagedToUnmanagedString(hostfxr_path_t, hostfxr_path, MAX_PATH, true);
+#endif
+
 	switch_dso_lib_t lib_t = switch_dso_open(hostfxr_path, 0, &derr);
 
 	hostfxr_initialize_for_runtime_config_fn hostfxr_initialize_for_runtime_config_fptr = (hostfxr_initialize_for_runtime_config_fn)switch_dso_func_sym(lib_t, "hostfxr_initialize_for_runtime_config", &derr);
@@ -177,8 +218,7 @@ switch_status_t loadRuntime()
 	char runtimeconfigpath[MAX_PATH];
 	switch_snprintf(runtimeconfigpath, MAX_PATH, "%s%s%s", SWITCH_GLOBAL_dirs.mod_dir, SWITCH_PATH_SEPARATOR, MOD_MANAGED_RUNTIMECONFIG);
 	char_t runtimeconfigpath_t[MAX_PATH];
-	ConvertToChar_t(runtimeconfigpath, MAX_PATH, runtimeconfigpath_t, MAX_PATH);
-
+	ConvertUnmangedToManagedString(runtimeconfigpath, runtimeconfigpath_t, MAX_PATH);
 
 	hostfxr_handle handle = NULL;
 	if (hostfxr_initialize_for_runtime_config_fptr(runtimeconfigpath_t, NULL, &handle) || !handle)
@@ -210,13 +250,13 @@ switch_status_t findLoader()
 	char loaderpath[MAX_PATH];
 	switch_snprintf(loaderpath, MAX_PATH, "%s%s%s", SWITCH_GLOBAL_dirs.mod_dir, SWITCH_PATH_SEPARATOR, MOD_MANAGED_DLL);
 	char_t loaderpath_t[MAX_PATH];
-	ConvertToChar_t(loaderpath, MAX_PATH, loaderpath_t, MAX_PATH);
+	ConvertUnmangedToManagedString(loaderpath, loaderpath_t, sizeof(loaderpath_t));
 	char_t typeName_t[MAX_PATH];
-	ConvertToChar_t("FreeSWITCH.Loader, FreeSWITCH.ManagedCore", MAX_PATH, typeName_t, MAX_PATH);
+	ConvertUnmangedToManagedString("FreeSWITCH.Loader, FreeSWITCH.ManagedCore", typeName_t, sizeof(typeName_t));
 	char_t methodName_t[MAX_PATH];
-	ConvertToChar_t("Load", MAX_PATH, methodName_t, MAX_PATH);
+	ConvertUnmangedToManagedString("Load", methodName_t, MAX_PATH);
 	char_t delegateTypeName_t[MAX_PATH];
-	ConvertToChar_t("FreeSWITCH.Loader+LoadDelegate, FreeSWITCH.ManagedCore", MAX_PATH, delegateTypeName_t, MAX_PATH);
+	ConvertUnmangedToManagedString("FreeSWITCH.Loader+LoadDelegate, FreeSWITCH.ManagedCore", delegateTypeName_t, sizeof(delegateTypeName_t));
 
 	loaderFunction load = NULL;
 	if (managed_globals.load_assembly_and_get_function_pointer(loaderpath_t, typeName_t, methodName_t, delegateTypeName_t, NULL, (void**)&load) ||
